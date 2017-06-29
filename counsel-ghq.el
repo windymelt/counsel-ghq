@@ -6,7 +6,7 @@
 ;; URL: https://github.com/windymelt/counsel-ghq
 ;; Keywords: lisp counsel ghq
 ;; Version: 0.0.1
-;; Package-Requires: (()) TODO
+;; Package-Requires: (ivy)
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -26,6 +26,125 @@
 ;; counsel-ghq.el provides a counsel interface to "ghq".
 
 ;;; Code:
+
+(require 'ivy)
+
+(defgroup counsel-ghq nil
+  "ghq with counsel interface"
+  :prefix "counsel-ghq-"
+  :group 'counsel)
+
+(defcustom counsel-ghq-command-ghq
+  "ghq"
+  "*A ghq command"
+  :type 'string
+  :group 'counsel-ghq)
+
+(defcustom counsel-ghq-command-ghq-arg-list
+  '("list" "--full-path")
+  "*Arguments for getting ghq list"
+  :type '(repeat string)
+  :group 'counsel-ghq)
+
+(defcustom counsel-ghq-command-git
+  "git"
+  "*A git command"
+  :type 'string
+  :group 'counsel-ghq)
+
+(defcustom counsel-ghq-command-git-arg-ls-files
+  '("ls-files")
+  "*Arguments for getting file list in git repository"
+  :type '(repeat string)
+  :group 'counsel-ghq)
+
+(defcustom counsel-ghq-command-hg
+  "hg"
+  "*A hg command"
+  :type 'string
+  :group 'counsel-ghq)
+
+(defcustom counsel-ghq-command-hg-arg-ls-files
+  '("manifest")
+  "*Arguments for getting file list in hg repository"
+  :type '(repeat string)
+  :group 'counsel-ghq)
+
+(defcustom counsel-ghq-command-svn
+  "svn"
+  "*A svn command"
+  :type 'string
+  :group 'counsel-ghq)
+
+(defcustom counsel-ghq-command-svn-arg-ls-files
+  '("list" "--recursive")
+  "*Arguments for getting files (and directories) list in svn repository"
+  :type '(repeat string)
+  :group 'counsel-ghq)
+
+(defun counsel-ghq--open-dired (file)
+  (dired (file-name-directory file)))
+
+(ivy-set-actions 'counsel-ghq
+  '(("o" find-file "Open File")
+    ("O" find-file-other-window "Open File other window")
+    ("f" find-file-other-frame "Open File other frame")
+    ("d" counsel-ghq--open-dired "Open Directory")))
+
+(defmacro counsel-ghq--line-string ()
+  `(buffer-substring-no-properties
+    (line-beginning-position) (line-end-position)))
+
+(defun counsel-ghq--list-candidates ()
+  (with-temp-buffer
+    (unless (zerop (apply #'call-process
+                          counsel-ghq-command-ghq nil t nil
+                          counsel-ghq-command-ghq-arg-list))
+      (error "Failed: Can't get ghq list candidates"))
+    (let ((paths))
+      (goto-char (point-min))
+      (while (not (eobp))
+        (push (counsel-ghq--line-string) paths)
+        (forward-line 1))
+      (reverse paths))))
+
+(defun counsel-ghq--ls-files ()
+  (with-temp-buffer
+    (unless (or (zerop (ignore-errors
+                         (apply #'call-process
+                                counsel-ghq-command-git nil '(t nil) nil
+                                counsel-ghq-command-git-arg-ls-files)))
+                (zerop (ignore-errors
+                         (apply #'call-process
+                                counsel-ghq-command-svn nil '(t nil) nil
+                                counsel-ghq-command-svn-arg-ls-files)))
+                (zerop (ignore-errors
+                         (apply #'call-process
+                                counsel-ghq-command-hg nil '(t nil) nil
+                                counsel-ghq-command-hg-arg-ls-files))))
+      (error "Failed: Can't get file list candidates"))
+    (split-string (buffer-string))))
+
+(defun counsel-ghq--source (repo)
+  (let ((name (file-name-nondirectory (directory-file-name repo))))
+    (ivy-read (concat name ": ")
+              (counsel-ghq--ls-files)
+              :action (lambda (path) (find-file path)))))
+
+;;;###autoload
+(defun counsel-ghq ()
+  "Ivy interface for ghq."
+  (interactive)
+  (ivy-read (concat "ghq list [M-o to menu]: ") (counsel-ghq--list-candidates)
+            :keymap counsel-describe-map
+            :preselect (counsel-symbol-at-point)
+            :history 'counsel-describe-symbol-history
+            :require-match t
+            :sort nil
+            :action (lambda (repo)
+                      (let ((default-directory (file-name-as-directory repo)))
+                        (counsel-ghq--source default-directory)))
+            :caller 'counsel-ghq))
 
 (provide 'counsel-ghq)
 
