@@ -110,18 +110,21 @@
 
 (defun counsel-ghq--ls-files ()
   (with-temp-buffer
-    (unless (or (zerop (ignore-errors
-                         (apply #'call-process
-                                counsel-ghq-command-git nil '(t nil) nil
-                                counsel-ghq-command-git-arg-ls-files)))
-                (zerop (ignore-errors
-                         (apply #'call-process
-                                counsel-ghq-command-svn nil '(t nil) nil
-                                counsel-ghq-command-svn-arg-ls-files)))
-                (zerop (ignore-errors
-                         (apply #'call-process
-                                counsel-ghq-command-hg nil '(t nil) nil
-                                counsel-ghq-command-hg-arg-ls-files))))
+    (unless (or (zerop (or (ignore-errors
+                             (apply #'call-process
+                                    counsel-ghq-command-git nil '(t nil) nil
+                                    counsel-ghq-command-git-arg-ls-files))
+                           1))
+                (zerop (or (ignore-errors
+                             (apply #'call-process
+                                    counsel-ghq-command-svn nil '(t nil) nil
+                                    counsel-ghq-command-svn-arg-ls-files))
+                           1))
+                (zerop (or (ignore-errors
+                             (apply #'call-process
+                                    counsel-ghq-command-hg nil t nil
+                                    counsel-ghq-command-hg-arg-ls-files))
+                           1)))
       (error "Failed: Can't get file list candidates"))
     (split-string (buffer-string))))
 
