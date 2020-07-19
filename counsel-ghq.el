@@ -140,7 +140,7 @@
   (interactive)
   (ivy-read (concat "ghq list [M-o to menu]: ") (counsel-ghq--list-candidates)
             :keymap counsel-describe-map
-            :preselect (counsel-symbol-at-point)
+            :preselect (symbol-at-point)
             :history 'counsel-describe-symbol-history
             :require-match t
             :sort nil
