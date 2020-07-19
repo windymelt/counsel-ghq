@@ -5,7 +5,7 @@
 ;; Author: Keisuke Noguchi <windymelt@3qe.us>
 ;; URL: https://github.com/windymelt/counsel-ghq
 ;; Keywords: lisp counsel ghq
-;; Version: 0.0.1
+;; Version: 0.0.2
 ;; Package-Requires: ((emacs "24") (ivy "0.9.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
